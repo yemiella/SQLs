@@ -1,0 +1,75 @@
+CREATE TABLE product_categories (id INT PRIMARY KEY UNIQUE NOT NULL,
+name VARCHAR (25) NOT NULL);
+
+CREATE TABLE options (id INT PRIMARY KEY UNIQUE NOT NULL, name VARCHAR(50) NOT NULL);
+
+CREATE TABLE option_group (id INT PRIMARY KEY UNIQUE NOT NULL, name VARCHAR(55) NOT NULL);
+
+CREATE TABLE products (id INT PRIMARY KEY UNIQUE NOT NULL, name VARCHAR(100) NOT NULL, price FLOAT,
+product_decription VARCHAR (1000) NOT NULL, product_categories_id INT UNIQUE NOT NULL,
+FOREIGN KEY (product_categories_id) REFERENCES product_categories (id));
+
+
+CREATE TABLE product_option (id INT  PRIMARY KEY UNIQUE NOT NULL,
+option_id INT UNIQUE NOT NULL, product_id INT UNIQUE NOT NULL,
+option_group_id INT UNIQUE NOT NULL, product_option_price int not null,
+FOREIGN KEY (product_id) REFERENCES products(id), FOREIGN KEY (option_id) REFERENCES options(id),
+FOREIGN KEY (option_group_id) REFERENCES option_group(id));
+
+CREATE TABLE users (id INT PRIMARY KEY UNIQUE NOT NULL, user_id VARCHAR(300) UNIQUE NOT NULL,
+user_password VARCHAR (16) NOT NULL, user_fullname VARCHAR (500) NOT NULL);
+
+CREATE TABLE orders (id INT PRIMARY KEY UNIQUE NOT NULL, user_id INT UNIQUE NOT NULL, order_amt FLOAT NOT NULL,
+order_name VARCHAR (100) NOT NULL, order_address VARCHAR (1000) NOT NULL, order_date TIMESTAMP NOT NULL,
+shipped_date TIMESTAMP NOT NULL, order_cancelled BOOLEAN NOT NULL, oder_cancelled_date TIMESTAMP NOT NULL,
+FOREIGN KEY (user_id) REFERENCES users(id));
+
+CREATE TABLE order_details (id INT PRIMARY KEY UNIQUE NOT NULL, order_id INT UNIQUE NOT NULL,
+product_id INT UNIQUE NOT NULL, name VARCHAR, qunatity INT NOT NULL,
+FOREIGN KEY (order_id) REFERENCES orders(id), FOREIGN KEY (product_id) REFERENCES products(id));
+
+
+
+SELECT users.id as UID, orders.id as orders_id,orders.order_amt,
+order_details.id as order_details_id,
+order_details.product_id, order_details.name, order_details.qunatity
+from orders
+join users on users.id = orders.user_id
+join order_details on orders.id=order_details.order_id;
+
+select users.id as uid, count(orders.*) as order_counts
+from orders
+Join users on orders.user_id = users.id
+group by 1
+Having count(orders.*) = 3
+
+select users.id as uid, count(orders.*) as order_counts
+from orders
+Join users on orders.user_id = users.id
+group by 1
+Having count(orders.*) < 1
+
+SELECT order_cancelled,
+count(order_cancelled) * 100.0/ (SELECT count(*) FROM orders) as order_percent
+From orders
+group by 1
+
+select users.id, sum(orders.order_amt) as sum_of_amt_spent from orders
+join users on users.id = orders.user_id
+where orders.order_date between '2017-01-01' and '2017-12-31'
+group by users.id
+order by sum(orders.order_amt) desc limit 5;
+
+
+SELECT products.id, products.name, SUM(orders.order_amt), orders.order_date,
+products.price,
+CASE WHEN products.price <= 10 THEN '$10 & Below'
+WHEN products.price <= 25 THEN '$11-$25'
+WHEN products.price <=100 THEN '$26-$100'
+ELSE 'Above $100' END AS price_range
+from products
+join order_details on products.id = order_details.product_id
+join orders on order_details.order_id = orders.id
+WHERE orders.order_date BETWEEN '2018-10-30' and '2016-10-30'
+group by 1, 4
+order by 3 DESC
